@@ -1,0 +1,9 @@
+#在系统启动后的10分钟和每个星期一的早上9点启动提醒服务。
+
+[Unit]
+[Timer]
+Unit=qndxx.service
+OnBootSec=10 minute #定时器将在系统启动后的10分钟触发。
+OnCalendar=Mon 2023-*-* 09:00:00 #定时器将在每个星期一的早上 9 点触发。
+[Install]
+WantedBy=multi-user.target
