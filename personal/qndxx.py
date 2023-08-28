@@ -3,7 +3,6 @@ import json
 import requests
 import conf
 
-
 # webhook地址
 webhook_url = conf.WEBHOOK_URL
 

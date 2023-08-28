@@ -4,7 +4,7 @@ import json
 import conf
 
 weather_url = "https://v0.yiketianqi.com/api?unescape=1&version=v61&appid=75465165&appsecret=VLz7P9xd"
-webhook_url = conf.WEBHOOK_URL
+webhook_url = WEBHOOK_URL
 params = {
     "city": conf.CITY
 }

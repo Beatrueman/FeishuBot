@@ -58,7 +58,7 @@ def send():
                                 ]
                         }
                 }
-    
+
     req = {
         "receive_id": user_id, 
         "msg_type": "post",

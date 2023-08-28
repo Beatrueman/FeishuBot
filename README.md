@@ -1,5 +1,13 @@
 # 飞书机器人
 
+## 更新与修复
+
+### 2023年8月28日更新
+
+1.将原先的`TestApi.py`整合进`ChatApi.py`中，省去了繁琐的目录与代码文件
+
+2.更新了请求地址配置方法，只需要一个文件`ChatApi.py`即可
+
 ## **飞书机器人介绍**
 
 > [机器人概述 - 开发指南 - 开发文档 - 飞书开放平台 (feishu.cn)](https://open.feishu.cn/document/client-docs/bot-v3/bot-overview)
@@ -68,9 +76,7 @@ im:message,im:message.group_at_msg,im:message.group_at_msg:readonly,im:message.g
 
 #### **请求地址配置**方法
 
-思路：先用TestApi检验接口供飞书验证，然后地址不变，换成ChatApi
-
-1.使用反向代理工具ngrok完成内网穿透
+**1.使用反向代理工具ngrok完成内网穿透**
 
 使用docker启动ngrok
 
@@ -92,32 +98,26 @@ docker run -it -e NGROK_AUTHTOKEN=<token> ngrok/ngrok http 8080
 
 1.3 在`FeishuBot/public/chat/conf.py`中填写相关信息
 
-先运行`TestApi.py`
-
-```
-python3 TestApi.py
-```
-
-到飞书后台填写请求配置地址，格式为https://123456.ngrok-free.app/query/message
-
-填好后Ctrl + C结束TestApi.py
-
-然后再运行`ChatApi.py`
+先运行`ChatApi.py`
 
 ```
 python3 ChatApi.py
 ```
 
-2.使用k8s暴露公网
+到飞书后台填写请求配置地址，格式为https://123456.ngrok-free.app/query/message
 
-2.1 在`FeishuBot/public/api/test`和`FeishuBot/public/api/chat`下先都填好`conf.py`中的信息，然后自己制作docker镜像，一共两个
+期间保证ngrok在后台一直运行
+
+**2.使用Kubernetes暴露公网**
+
+2.1 在`FeishuBot/public/build-api`填好`conf.py`中的信息，然后自己制作docker镜像
 
 ```
 docker build -t docker的用户名/镜像名:<tag> .
 docker push 做好的镜像
 ```
 
-2.2在`FeishuBot/public/api`下，修改`deploy.yaml`
+2.2在`FeishuBot/public/build-api`下，修改`deploy.yaml`
 
 ```
 apiVersion: apps/v1
@@ -136,9 +136,9 @@ spec:
     spec:
       containers:
       - name: api
-        image:  # 在api目录下制作的镜像名，我的是beatrueman/api:3.0
+        image:  # 在build-api目录下制作的镜像
         ports:
-        - containerPort: 8080  
+        - containerPort: 8080
 
 ---
 apiVersion: v1
@@ -148,66 +148,26 @@ metadata:
 spec:
   selector:
     app: api
+  type: NodePort
   ports:
-  - protocol: TCP
+  - name: http  
+    protocol: TCP
     port: 80  # 对外暴露的端口
-    targetPort: 8080  # Flask应用容器监听的端口
-  type: LoadBalancer  # 可以通过公网IP访问Service
+    targetPort: 8080 # Flask应用容器监听的端口
+    nodePort: 39378
+
 ```
 
 然后获取检验用的请求配置地址
 
 ```
 kubectl apply -f deploy.yaml
-kubectl get svc # 获取端口,一般是3XXXX,记得在服务器开放
+kubectl get svc # 获取端口为39378,记得在服务器开放
 ```
 
 地址示例：http://1.2.3.4:3XXXXX/query/message
 
 ![image-20230803185245586](https://gitee.com/beatrueman/images/raw/master/img/202308031852674.png)
-
-2.3 更改`deploy.yaml`中的镜像
-
-```
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: api
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: api
-  template:
-    metadata:
-      labels:
-        app: api
-    spec:
-      containers:
-      - name: api
-        image:  # 修改为在chat目录下制作的镜像名,我的是beatrueman/chat:2.0
-        ports:
-        - containerPort: 8080  
-
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: api
-spec:
-  selector:
-    app: api
-  ports:
-  - protocol: TCP
-    port: 80  # 对外暴露的端口
-    targetPort: 8080  # Flask应用容器监听的端口
-  type: LoadBalancer  # 可以通过公网IP访问Service
-
-```
-
-```
-kubectl apply -f deploy.yaml
-```
 
 ## **功能**
 
@@ -296,10 +256,10 @@ chmod +x run1.sh
 
 ## BUG
 
-1.用K8s配置请求地址时，用于检验时地址都是可用的，但是更改镜像后，无法使用互动对话功能
+~~1.用K8s配置请求地址时，用于检验时地址都是可用的，但是更改镜像后，无法使用互动对话功能~~
 
 2.互动对话功能在服务器上使用ngrok有点问题，在windows下完全可以使用
 
-3.因为配置请求地址时需要在固定地址的情况下改变镜像，所以GitLab中的CI只跑通用于检验的镜像并部署在K8s，详情请看.gitlab-ci.yaml
+~~3.因为配置请求地址时需要在固定地址的情况下改变镜像，所以GitLab中的CI只跑通用于检验的镜像并部署在K8s，详情请看.gitlab-ci.yaml~~
 
 ![image-20230804185615165](https://gitee.com/beatrueman/images/raw/master/img/202308041856285.png)

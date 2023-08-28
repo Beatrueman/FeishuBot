@@ -207,5 +207,4 @@ def message(): # 用于处理来自飞书服务器的HTTP POST请求
         return jsonify(body)
 
 if __name__ == "__main__":
-    ngrok_url = conf.NGROK_URL
     app.run(host='0.0.0.0', port=8080)
