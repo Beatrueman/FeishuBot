@@ -2,6 +2,18 @@
 
 ## 更新与修复
 
+### 2023年9月1日更新
+
+更新了对话机器人返回帮助界面功能，用户发送“帮助”，返回机器人使用说明
+
+![image-20230901161429940](https://gitee.com/beatrueman/images/raw/master/img/202309011614056.png)
+
+### 2023年8月30日更新
+
+更新了对话机器人返回微博热搜榜功能，用户发送“热搜”，返回即时热搜榜
+
+![image-20230901155214031](https://gitee.com/beatrueman/images/raw/master/img/202309011552244.png)
+
 ### 2023年8月28日更新
 
 1.将原先的`TestApi.py`整合进`ChatApi.py`中，省去了繁琐的目录与代码文件
@@ -248,7 +260,9 @@ chmod +x run1.sh
 
 ![image-20230802120451729](https://gitee.com/beatrueman/images/raw/master/img/202308021204780.png)
 
-### ChatGPT
+3.用户发送“**热搜**”，机器人返回即时热搜榜
+
+### ![](https://gitee.com/beatrueman/images/raw/master/img/202309011552244.png)ChatGPT
 
 参考网上的项目，建议使用新的应用机器人
 

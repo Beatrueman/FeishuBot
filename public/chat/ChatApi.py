@@ -3,6 +3,7 @@ from queue import Queue
 from flask import Flask, request, jsonify, json
 import requests
 import conf
+from bs4 import BeautifulSoup as BS  # 解析页面
 
 app = Flask(__name__) # 创建Flask应用程序
 consumer = Queue() # 创建队列用于存储接收到的消息
@@ -72,6 +73,45 @@ def message(): # 用于处理来自飞书服务器的HTTP POST请求
                 receive_data = feishuResponse.to_json()
                 receive_content = receive_data['query']
 
+                if receive_content == '帮助':
+                    url = "https://open.feishu.cn/open-apis/im/v1/messages"
+                    params = {"receive_id_type":"open_id"}
+                    text = f"1.发送**青年大学习**\n机器人回复青年大学习通知内容\n2.发送**查询天气：城市名**\n机器人回复需要监测天气城市的天气信息(城市名注意不要带市和区。 如: 北京、南岸)\n3.发送**热搜**\n机器人返回即时微博热搜榜\n"
+                    msgContent = {
+                        "zh_cn": {
+                            "title": "使用帮助",
+                            "content": [
+                                [{
+                                    "tag": "at",
+                                    "user_id": user_id
+                                }],
+                                [
+                                {
+                                    "tag": "text",
+                                    "text": text
+                                }],
+                                [
+                                    {
+                                        "tag": "a",
+                                        "text": "点击转到作者Yiiong的Github",
+                                        "href": "https://github.com/Beatrueman"
+                                    }
+                                ]
+                            ]
+                        }
+                    }
+
+                    req = {
+                        "receive_id": user_id,
+                        "msg_type": "post",
+                        "content": json.dumps(msgContent)
+                    }
+                    payload = json.dumps(req)
+                    headers = {
+                        'Authorization': 'Bearer '+tat,
+                        'Content-Type': 'application/json'
+                    }
+                    requests.post(url, params=params, headers=headers, data=payload)
 
                 # 如果用户发送的消息为“青年大学习”，则发送消息
                 if receive_content == '青年大学习':
@@ -201,11 +241,72 @@ def message(): # 用于处理来自飞书服务器的HTTP POST请求
                             'Authorization': 'Bearer '+tat,
                             'Content-Type': 'application/json'
                         }
-                        requests.post(url, params=params, headers=headers, data=payload)                
+                        requests.post(url, params=params, headers=headers, data=payload)
+                if '热搜' in receive_content:
+                    # 获取热搜榜
+                    hot_url = 'https://s.weibo.com/top/summary?cate=realtimehot'
+                    header = {
+	                    'User-Agent': 'Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/99.0.4844.51 Mobile Safari/537.36',
+	                    'Host': 's.weibo.com',
+	                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+	                    'Accept-Language': 'zh-CN,zh-Hans;q=0.9',
+	                    'Accept-Encoding': 'gzip, deflate, br',
+	                    'Cookie': 'SUB=_2AkMTs6WCf8NxqwJRmPAUyWrrbIV2zgHEieKl71RZJRMxHRl-yT9vqh0PtRB6ODOLb6U5O10R6WkdXcFpgIAtJOp-bnbW; SUBP=0033WrSXqPxfM72-Ws9jqgMF55529P9D9WWxqIQKFurVE2p8JOJqxsae; _s_tentry=passport.weibo.com; Apache=5290914878992.395.1693395639957; SINAGLOBAL=5290914878992.395.1693395639957; ULV=1693395639970:1:1:1:5290914878992.395.1693395639957:'
+                    }
+                    r = requests.get(hot_url, headers=header) 
+                    soup = BS(r.text, 'html.parser')
+                    span_tags = soup.find_all('span')  # 查找所有的<span>标签
+                    hot_list = [] # 保存热搜列表
+                    for i,span in enumerate(span_tags):
+                        text = ""
+                        for child in span.children:
+                            if child.name != "em":  # 判断节点类型，如果不是<em>标签，则将其内容拼接到text中
+                                text += str(child) # 其内容拼接到text中
+                        hot = f"NO.{i}：{text}"
+                        hot_list.append(hot) # 将热搜添加到列表中
+                        
+                    # 发送消息
+                    url = "https://open.feishu.cn/open-apis/im/v1/messages"
+                    params = {"receive_id_type":"open_id"}
+                    msgContent = {
+                        "zh_cn": {
+                            "title": "微博热搜榜",
+                            "content": [
+                                [{
+                                    "tag": "text",
+                                    "text":  "\n".join(hot_list) # 将热搜列表拼接成一条消息
+                                }],
+                                [
+                                    {
+                                        "tag": "a",
+                                        "text": "详情请看微博热搜",
+                                        "href": "https://m.weibo.cn/p/106003type=25&t=3&disable_hot=1&filter_type=realtimehot?jumpfrom=weibocom"
+                                    },
+                                    {
+                                        "tag": "img",
+                                        "image_key": "img_v2_5e72c02b-1cda-43cf-bfca-108917f0451g"
+                                    }
+                                ]
+                            ]
+                        }
+                    }
+
+                    req = {
+                        "receive_id": user_id,
+                        "msg_type": "post",
+                        "content": json.dumps(msgContent)
+                    }
+                    payload = json.dumps(req)
+                    headers = {
+                        'Authorization': 'Bearer '+tat,
+                        'Content-Type': 'application/json'
+                    }
+                    requests.post(url, params=params, headers=headers, data=payload)
+
+
             else:
                 logging.info("非文本消息")
         return jsonify(body)
 
 if __name__ == "__main__":
-    ngrok_url = conf.NGROK_URL
     app.run(host='0.0.0.0', port=8080)
